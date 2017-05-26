@@ -1,0 +1,3 @@
+iwae/datasets/**/*
+iwae/.idea/**/*
+**/*.pyc
