@@ -5,21 +5,45 @@ import struct
 import os
 import scipy.io
 import config
+import utils
+import matplotlib
+import matplotlib.pyplot as plt
+
+# This file contains all the utilities needed for manipulating and extracting batches
+# from the datasets assuming that the datasets have already been downloaded to the
+# required locations
 
 class Dataset():
-    def __init__(self,num_val=400,type = 'mnist',shuffle = False):
+    def __init__(self,num_val=400,type = 'mnist'):
+
+        # Initializes the class object
+        # Parameters:
+        # num_val:  number of examples for the validation set
+        # type: could be <mnist>,<binmnist> or <>
+
+
         self.data = {}
         self.orig_image_shape = (0,0)
         self.dim = 0
         self.train_mean = 0
-        self.std_dev = 1
+        self.train_std_dev = 1
+        self.train_num = 0
+        self.classes_num = 0
+        self.scaled_down = False
 
+        ## Get Data
         if(type == 'mnist'):
             self.get_mnist_data(num_val)
+            self.classes_num = 10
         else:
             print('Type must be "mnist" ')
 
-    def get_mnist_data(self, num_val, shuffle):
+        ## Get mean and standard deviation
+        self.train_mean = np.mean(self.data['train_imgs'], axis=0)
+        self.train_std_dev = np.std(self.data['train_imgs'],axis=0, keepdims=True) + 1e-7
+        self.train_bias = -np.log(1./np.clip(self.train_mean, 0.001, 0.999)-1.)
+
+    def get_mnist_data(self, num_val):
 
         def load_mnist_images_np(imgs_filename, labels_filename):
             with open(imgs_filename, 'rb') as f:
@@ -29,6 +53,7 @@ class Dataset():
                 if(imgs_filename.find(config.MNIST_TRAIN_DATA) != -1):
                     self.dim = dim
                     self.orig_image_shape = (rows,cols)
+                    self.train_num = nimages
                 images = np.fromfile(f, dtype=np.dtype(np.ubyte)).reshape((nimages, dim))
 
             with open(labels_filename, 'rb') as f:
@@ -50,8 +75,98 @@ class Dataset():
         self.data['train_labels'] = train_labels[:-num_val]
         self.data['val_imgs'] = train_imgs[-num_val:]
         self.data['val_labels'] = train_labels[-num_val:]
-        self.data['test_imgs'] = test_imgs[-num_val:]
-        self.data['test_labels'] = test_labels[-num_val:]
+        self.data['test_imgs'] = test_imgs
+        self.data['test_labels'] = test_labels
+
+    def standardize_data(self):
+        self.data['train_imgs'] = (self.data['train_imgs'] - self.train_mean) / self.train_std_dev
+        self.data['val_imgs'] = (self.data['val_imgs'] - self.train_mean) / self.train_std_dev
+        self.data['test_imgs'] = (self.data['test_imgs'] - self.train_mean) / self.train_std_dev
+
+    def scale_down_data(self):
+        # In the original paper every value in the image matrix lies between 0 and 1
+        self.data['train_imgs'] = np.asarray((self.data['train_imgs']/255.0),dtype=float)
+        self.data['val_imgs'] = np.asarray((self.data['val_imgs']/255.0),dtype=float)
+        self.data['test_imgs'] = np.asarray((self.data['test_imgs']/255.0),dtype=float)
+        self.scaled_down = True
+
+    def get_train_minibatch(self, minibatch_size, replace = True, sample_from_first_n=None):
+        if(sample_from_first_n == None):
+            sample_from_first_n = self.train_num
+        mask = np.random.choice(sample_from_first_n, minibatch_size, replace)
+        batch_imgs = self.data['train_imgs'][mask]
+        batch_labels = self.data['train_labels'][mask]
+        return batch_imgs, batch_labels
+
+    def get_n_examplesforeachlabel(self, num_examples, set='train'):
+        key_imgs = set + '_imgs'
+        key_labels = set + '_labels'
+        example_dict = {}
+        if(len(self.data[key_labels]) <= 0):
+            print('No labels present!')
+            return None
+        #print(self.classes_num)
+        for y_hat in range(self.classes_num):
+            y = self.data[key_labels]
+            #print(y.shape)
+            idxs = np.flatnonzero(y == y_hat)
+            idxs = np.random.choice(idxs, num_examples, replace=False)
+            example_dict[y_hat] = (self.data[key_imgs][idxs], self.data[key_labels][idxs])
+        return example_dict
+
+    def visualize_nlabelled_examples(self, num_examples=7, set='train'):
+        example_dict = self.get_n_examplesforeachlabel(num_examples, set)
+        if(self.scaled_down == True):
+            for key in sorted(example_dict):
+                X = example_dict[key][0]
+                num_samples = X.shape[0]
+                for i in range(num_samples):
+                    example_dict[key][0][i] *= 255
+        utils.visualize_labelled_examples(example_dict, self.orig_image_shape)
 
 
+    #def transform_labels2onehot():
 
+if __name__ == '__main__':
+
+    ## Test the module datasets_utils
+
+    dataset = Dataset()
+    # dataset shapes
+    print(dataset.data['train_imgs'].shape)
+    print(dataset.data['train_labels'].shape)
+    print(dataset.data['val_imgs'].shape)
+    print(dataset.data['val_labels'].shape)
+    print(dataset.data['test_imgs'].shape)
+    print(dataset.data['test_labels'].shape)
+
+    # dataset values
+    print('dataset values')
+    print(dataset.dim)
+    print(dataset.train_num)
+    print(dataset.classes_num)
+    print(dataset.orig_image_shape)
+    print(dataset.train_std_dev)
+    print(dataset.train_mean.shape)
+    print(dataset.train_std_dev.shape)
+    print(dataset.train_bias.shape)
+
+
+    #visualization
+    #matplotlib.use('Agg')
+    #plt.subplot(2,1,1)
+    example_dict = dataset.get_n_examplesforeachlabel(2)
+    utils.visualize_labelled_examples(example_dict, dataset.orig_image_shape)
+
+    # standardization
+    #dataset.standardize_data()
+    #example_dict = dataset.get_n_examplesforeachlabel(2)
+    #utils.visualize_labelled_examples(example_dict, dataset.orig_image_shape)
+
+    # scaling
+    #plt.subplot(2,1,2)
+    dataset.scale_down_data()
+    #example_dict = dataset.get_n_examplesforeachlabel(2)
+    dataset.visualize_nlabelled_examples(2)
+
+    #plt.show()
