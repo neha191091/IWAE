@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 # required locations
 
 class Dataset():
-    def __init__(self,num_val=400,type = 'mnist'):
+    def __init__(self,num_val=400,type = 'mnist', shuffle=False, shuffle_seed=123):
 
         # Initializes the class object
         # Parameters:
@@ -30,20 +30,36 @@ class Dataset():
         self.train_num = 0
         self.classes_num = 0
         self.scaled_down = False
+        self.val_num = num_val
+        self.test_num = 0
 
         ## Get Data
         if(type == 'mnist'):
-            self.get_mnist_data(num_val)
+            train_imgs, train_labels, test_imgs, test_labels = self.get_mnist_data()
+            if shuffle:
+                permutation = np.random.RandomState(seed=shuffle_seed).permutation(train_imgs.shape[0])
+                train_imgs = train_imgs[permutation]
+                train_labels = train_labels[permutation]
+
+            self.data['train_imgs'] = train_imgs[:-num_val]
+            self.data['train_labels'] = train_labels[:-num_val]
+            self.data['val_imgs'] = train_imgs[-num_val:]
+            self.data['val_labels'] = train_labels[-num_val:]
+            self.data['test_imgs'] = test_imgs
+            self.data['test_labels'] = test_labels
             self.classes_num = 10
+            self.train_num -= self.val_num
+            self.test_num = self.data['test_imgs'].shape[0]
         else:
             print('Type must be "mnist" ')
+            return
 
         ## Get mean and standard deviation
         self.train_mean = np.mean(self.data['train_imgs'], axis=0)
         self.train_std_dev = np.std(self.data['train_imgs'],axis=0, keepdims=True) + 1e-7
         self.train_bias = -np.log(1./np.clip(self.train_mean, 0.001, 0.999)-1.)
 
-    def get_mnist_data(self, num_val):
+    def get_mnist_data(self):
 
         def load_mnist_images_np(imgs_filename, labels_filename):
             with open(imgs_filename, 'rb') as f:
@@ -71,12 +87,7 @@ class Dataset():
         train_imgs, train_labels = load_mnist_images_np(train_imgs_path, train_labels_path)
         test_imgs, test_labels = load_mnist_images_np(test_imgs_path, test_labels_path)
 
-        self.data['train_imgs'] = train_imgs[:-num_val]
-        self.data['train_labels'] = train_labels[:-num_val]
-        self.data['val_imgs'] = train_imgs[-num_val:]
-        self.data['val_labels'] = train_labels[-num_val:]
-        self.data['test_imgs'] = test_imgs
-        self.data['test_labels'] = test_labels
+        return train_imgs, train_labels, test_imgs, test_labels
 
     def standardize_data(self):
         self.data['train_imgs'] = (self.data['train_imgs'] - self.train_mean) / self.train_std_dev
@@ -98,6 +109,11 @@ class Dataset():
         batch_labels = self.data['train_labels'][mask]
         return batch_imgs, batch_labels
 
+    def get_data_from_mask(self, mask, subdataset='train', **kwargs):
+        set_imgs = subdataset+'_imgs'
+        set_labels = subdataset+'_labels'
+        return self.data[set_imgs][mask], self.data[set_labels][mask]
+
     def get_n_examplesforeachlabel(self, num_examples, set='train'):
         key_imgs = set + '_imgs'
         key_labels = set + '_labels'
@@ -111,17 +127,17 @@ class Dataset():
             #print(y.shape)
             idxs = np.flatnonzero(y == y_hat)
             idxs = np.random.choice(idxs, num_examples, replace=False)
-            example_dict[y_hat] = (self.data[key_imgs][idxs], self.data[key_labels][idxs])
+            example_dict[y_hat] = (self.data[key_imgs][idxs])
         return example_dict
 
     def visualize_nlabelled_examples(self, num_examples=7, set='train'):
         example_dict = self.get_n_examplesforeachlabel(num_examples, set)
         if(self.scaled_down == True):
             for key in sorted(example_dict):
-                X = example_dict[key][0]
+                X = example_dict[key]
                 num_samples = X.shape[0]
                 for i in range(num_samples):
-                    example_dict[key][0][i] *= 255
+                    example_dict[key][i] *= 255
         utils.visualize_labelled_examples(example_dict, self.orig_image_shape)
 
 
@@ -131,7 +147,7 @@ if __name__ == '__main__':
 
     ## Test the module datasets_utils
 
-    dataset = Dataset()
+    dataset = Dataset(shuffle=True)
     # dataset shapes
     print(dataset.data['train_imgs'].shape)
     print(dataset.data['train_labels'].shape)
@@ -155,7 +171,7 @@ if __name__ == '__main__':
     #visualization
     #matplotlib.use('Agg')
     #plt.subplot(2,1,1)
-    example_dict = dataset.get_n_examplesforeachlabel(2)
+    example_dict = dataset.get_n_examplesforeachlabel(10)
     utils.visualize_labelled_examples(example_dict, dataset.orig_image_shape)
 
     # standardization
@@ -167,6 +183,6 @@ if __name__ == '__main__':
     #plt.subplot(2,1,2)
     dataset.scale_down_data()
     #example_dict = dataset.get_n_examplesforeachlabel(2)
-    dataset.visualize_nlabelled_examples(2)
+    dataset.visualize_nlabelled_examples(10)
 
     #plt.show()

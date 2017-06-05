@@ -1,3 +1,4 @@
 iwae/datasets/**/*
+iwae/graphs/**/*
 iwae/.idea/**/*
 **/*.pyc

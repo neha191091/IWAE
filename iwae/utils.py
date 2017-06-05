@@ -6,7 +6,8 @@ import matplotlib.pyplot as plt
 def visualize_labelled_examples(example_dict,imgshape=(28,28)):
     num_keys = len(example_dict)
     for key in sorted(example_dict):
-        X, _ = example_dict[key]
+        X = example_dict[key]
+        print(X.shape)
         num_samples = X.shape[0]
         for i in range(num_samples):
             plt_idx = i * num_keys + key + 1
