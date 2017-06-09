@@ -1,22 +1,9 @@
+import sys, os #load_save
 import numpy as np
 import tensorflow as tf
 from tensorflow.python.ops import init_ops
 from tensorflow.python import debug as tf_debug
 import utils
-#np.random.seed(0)
-#tf.set_random_seed(0)
-
-#def init_weights(input_size, output_size, constant=1.0, seed=123):
-#    """ Glorot and Bengio, 2010's initialization of network weights"""
-#    scale = constant*np.sqrt(6.0/(input_size + output_size))
-#    if output_size > 0:
-#        return tf.random_uniform((input_size, output_size),
-#                             minval=-scale, maxval=scale,
-#                             dtype=tf.float32, seed=seed)
-#    else:
-#        return tf.random_uniform([input_size],
-#                             minval=-scale, maxval=scale,
-#                             dtype=tf.float32, seed=seed)
 
 log2pi = 0.5 * np.log(2 * np.pi)
 tiny_default = 1e-32
@@ -100,7 +87,7 @@ class BernoulliStochLayer:
                                name=layer_name + 'mean')  # Linear activation
         return BernoulliStochLayer(mean)
 
-class IWAE:
+class Network:
     def __init__(self, q_layers, p_layers, q_samples, prior, num_samples):
         self.q_layers = q_layers # a list of the graph nodes pertaining to each stochastic layer in the encoder network
         self.p_layers = p_layers # a list of the graph nodes pertaining to each stochastic layer in the decoder network
@@ -282,103 +269,4 @@ class IWAE:
                                                                   layer_name='p_stoch_layer_' + str(layer_iter) + '_',
                                                                   mean_bias=bias))
         prior = UnitGaussianLayer(layers_q[-1].mean_layer.shape)
-        return IWAE(layers_q, layers_p, samples_q, prior, num_samples)
-
-
-def has_nan(datum, tensor):
-  return np.any(np.isnan(tensor))
-
-
-if __name__ == '__main__':
-    print('testing the networks module....')
-
-    import datasets_utils as d_util
-
-    dataset = d_util.Dataset(shuffle=True)
-    dataset.scale_down_data()
-
-    #x_train_ex_batch, _ = dataset.get_train_minibatch(100)
-    #print(x_train_ex_batch.shape)
-
-    num_samples = 5
-    batch_size = 2
-
-    #layers
-    latent_units = [50]
-    hidden_units_q = [[200,200]]
-    hidden_units_p = [[200,200]]
-
-    # Create the model
-    x = tf.placeholder(tf.float32, [batch_size, dataset.dim], name='placeholder_x')
-    iwae = IWAE.build_network(x, num_samples, latent_units, hidden_units_q, hidden_units_p, dataset.train_bias)
-    grads, lowerbound  = iwae.get_gradient()
-    lowerbound_real = iwae.get_lowerbound_real()
-    samples = iwae.get_generated_samples()
-
-    #lowerbound = tf.Print(lowerbound, [lowerbound])
-    #print(grads)
-    lr = tf.placeholder(tf.float32)
-    train_step = tf.train.AdamOptimizer(learning_rate=lr).apply_gradients(grads)
-
-    #sess = tf.InteractiveSession()
-    #sess = tf_debug.LocalCLIDebugWrapperSession(sess)
-    #sess.add_tensor_filter("has_inf_or_nan", tf_debug.has_inf_or_nan)
-    num_epochs = 1
-    shuffle_seed = 123
-    num_train_iters = int(dataset.train_num / batch_size)
-    lr_float = 1e-2
-
-    #sess = tf.Session()
-    with tf.Session() as sess:
-        # sess = tf.InteractiveSession()
-        #sess = tf_debug.LocalCLIDebugWrapperSession(sess)
-        #sess.add_tensor_filter("has_nan", has_nan)
-        writer = tf.summary.FileWriter('./graphs', sess.graph)
-        tf.global_variables_initializer().run()
-
-        #for iter in range(1000):
-        #    batch_xs, _ = dataset.get_train_minibatch(batch_size)
-        #    lr_float = 1e-3
-
-        #    print('lowerbound on log likelihood ', iter, ': ',sess.run(lowerbound, feed_dict={x: batch_xs}))
-        #    #print(sess.run(lowerbound.shape, feed_dict={x: batch_xs}))
-        #    #sess.run(lowerbound, feed_dict={x: batch_xs})
-        #    output = sess.run(fetches=[train_step], feed_dict={x: batch_xs, lr: lr_float})
-
-
-        # training
-        num_train_iters = 1
-        for epoch in range(num_epochs):
-            lr_float = lr_float/10
-            permutation = np.random.RandomState(seed=shuffle_seed).permutation(dataset.train_num)
-            for index in range(num_train_iters):
-                mask = permutation[index * batch_size: (index + 1) * batch_size]
-                batch_xs, _ = dataset.get_data_from_mask(mask,'train')
-                print('lowerbound on log likelihood ', index, ': ', sess.run(lowerbound, feed_dict={x: batch_xs}))
-                output = sess.run(fetches=[train_step], feed_dict={x: batch_xs, lr: lr_float})
-
-        num_val_iters = int(dataset.val_num / batch_size)
-        num_val_iters = 1
-        lower_bound = 0
-        for index in range(num_val_iters):
-            num_range = np.arange(dataset.val_num)
-            mask = num_range[index * batch_size: (index + 1) * batch_size]
-            batch_xs, _ = dataset.get_data_from_mask(mask, 'val')
-            lb = sess.run(lowerbound_real, feed_dict={x: batch_xs})
-            lower_bound += lb
-            print('lowerbound on val log likelihood ', index, ': ', lb)
-        #sess.close()
-        print('avg lowerbound on val : ', lower_bound/dataset.val_num)
-
-        sample_dict = {}
-        examples = dataset.get_n_examplesforeachlabel(2,'test')
-        for key in sorted(examples):
-            X= examples[key]
-            sample_dict[key] = sess.run(samples,feed_dict={x: X})
-            print('key is : ', key, '     ', sample_dict[key].shape)
-
-        print(len(sample_dict))
-        print(sample_dict[0].shape)
-        utils.visualize_labelled_examples(sample_dict, dataset.orig_image_shape)
-
-    writer.close()
+        return Network(layers_q, layers_p, samples_q, prior, num_samples)
