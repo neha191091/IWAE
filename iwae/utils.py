@@ -19,7 +19,7 @@ def visualize_labelled_examples(example_dict,imgshape=(28,28), save=False, savep
             plt.axis('off')
             if i == 0:
                 plt.title(key)
-    if save:
+    if (save and savepath != None):
         plt.savefig(savepath)
     plt.show()
 

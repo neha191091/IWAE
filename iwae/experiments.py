@@ -5,7 +5,7 @@ import tensorflow as tf
 import progressbar
 from tensorflow.python import debug as tf_debug
 
-def train(sess, input_placeholder, network, dataset, chkpointpath, batch_size=20, num_epochs = 8, shuffle_seed = 123, checkpoint=0, save=True, optimizer='adam',learning_rate=0.01, beta1=0.9, beta2=0.999, epsilon=1e-8):
+def train(sess, input_placeholder, network, dataset, chkpointpath, batch_size=20, num_epochs = 3280, shuffle_seed = 123, checkpoint=0, save=True, optimizer='adam',learning_rate=1e-3, beta1=0.9, beta2=0.999, epsilon=1e-8):
 
     grads, lowerbound = network.get_gradient()
 
@@ -14,6 +14,7 @@ def train(sess, input_placeholder, network, dataset, chkpointpath, batch_size=20
         optimizer = tf.train.AdamOptimizer(learning_rate=lr, beta1=beta1, beta2=beta2, epsilon=epsilon)
 
     train_step = optimizer.apply_gradients(grads)
+    learning_rate = learning_rate/10
     lr_float = learning_rate
 
     # initialize variables
@@ -29,9 +30,11 @@ def train(sess, input_placeholder, network, dataset, chkpointpath, batch_size=20
     num_train_iters = int(dataset.train_num / batch_size)
     # num_train_iters = 1
 
-    pbar = progressbar.ProgressBar(maxval=num_epochs * num_train_iters).start()
-    for epoch in range(num_epochs):
-        lr_float = lr_float / 10
+    pbar = progressbar.ProgressBar(maxval=(num_epochs-checkpoint) * num_train_iters).start()
+    for epoch in range(checkpoint, num_epochs+1):
+        #lr_float = lr_float / 10
+        i = np.floor(np.log(epoch*2 + 1)/np.log(3))
+        lr_float = learning_rate * round(10. ** (1 - (i - 1) / 7.), 1)
         permutation = np.random.RandomState(seed=shuffle_seed).permutation(dataset.train_num)
         index = 0
         for index in range(num_train_iters):
@@ -42,10 +45,10 @@ def train(sess, input_placeholder, network, dataset, chkpointpath, batch_size=20
 
         # save model
         if save:
-            save_checkpoint(sess, chkpointpath, checkpoint)
+            save_checkpoint(sess, chkpointpath, epoch)
 
         checkpoint += 1
-        pbar.update(epoch * num_train_iters + index)
+        pbar.update((epoch-checkpoint) * num_train_iters + index)
     pbar.finish()
 
 def get_lowerbound(sess, input_placeholder, network, dataset, chkpointpath, checkpoint=0, batch_size=20, dataset_type='val'):
@@ -131,21 +134,30 @@ if __name__ == '__main__':
 
         writer = tf.summary.FileWriter('./graphs', sess.graph)
 
+        latest_checkpoint = 9
+        num_more_epochs = 1
+        num_epochs = latest_checkpoint + num_more_epochs
+
         train_model = False
         if train_model:
             # training
-            train(sess,x,iwae,dataset,path,batch_size,num_epochs=8,checkpoint=9)
+            train(sess,x,iwae,dataset,path,batch_size,num_epochs=num_epochs,checkpoint=latest_checkpoint)
 
-        val = False
+        val = True
         if val:
-            get_lowerbound(sess,x,iwae,dataset,path,checkpoint=8,batch_size=batch_size,dataset_type='val')
+            get_lowerbound(sess,x,iwae,dataset,path,checkpoint=latest_checkpoint,batch_size=batch_size,dataset_type='val')
+            #imgpath = img_path_name(dataset_name, num_samples, traintype, 'val', extra_string='latents')
+            #visualize_samples(sess, x, iwae, dataset, path, sample_type='latent', data_shape=(10, 5), save=True,
+            #                 savepath=imgpath, checkpoint=latest_checkpoint, batch_size=batch_size, dataset_type='val')
+            imgpath = img_path_name(dataset_name, num_samples, traintype, 'val')
+            visualize_samples(sess, x, iwae, dataset, path, sample_type='generated', data_shape=dataset.orig_image_shape, save=True,
+                              savepath=imgpath, checkpoint=latest_checkpoint, batch_size=batch_size, dataset_type='val')
 
         test = False
         if test:
             get_lowerbound(sess, x, iwae, dataset, path, checkpoint=8, batch_size=batch_size, dataset_type='test')
-
-        imgpath = img_path_name(dataset_name,num_samples,traintype,'val',extra_string='latents')
-        visualize_samples(sess,x,iwae,dataset,path,sample_type='latent',data_shape=(10,5),save=True,savepath=imgpath,checkpoint=8,batch_size=batch_size,dataset_type='val')
-
+            imgpath = img_path_name(dataset_name, num_samples, traintype, 'test')
+            visualize_samples(sess, x, iwae, dataset, path, sample_type='generated', data_shape=dataset.orig_image_shape, save=True,
+                              savepath=imgpath, checkpoint=latest_checkpoint, batch_size=batch_size, dataset_type='test')
 
     writer.close()
