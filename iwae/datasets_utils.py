@@ -130,7 +130,7 @@ class Dataset():
             example_dict[y_hat] = (self.data[key_imgs][idxs])
         return example_dict
 
-    def visualize_nlabelled_examples(self, num_examples=7, set='train'):
+    def visualize_nlabelled_examples(self, num_examples=7, set='train', save = False, savepath = None, num_examples_to_show = 0):
         example_dict = self.get_n_examplesforeachlabel(num_examples, set)
         if(self.scaled_down == True):
             for key in sorted(example_dict):
@@ -138,7 +138,14 @@ class Dataset():
                 num_samples = X.shape[0]
                 for i in range(num_samples):
                     example_dict[key][i] *= 255
-        utils.visualize_labelled_examples(example_dict, self.orig_image_shape)
+        example_dict_1 = {}
+        if(num_examples_to_show == 0):
+            num_examples_to_show = num_examples
+        for key in sorted(example_dict):
+            example_dict_1[key] = example_dict[key][:num_examples_to_show]
+        utils.visualize_labelled_examples(example_dict_1, self.orig_image_shape, save=save, savepath=savepath)
+        #utils.visualize_labelled_examples(example_dict, self.orig_image_shape, save=save, savepath=savepath)
+        return example_dict
 
 
     #def transform_labels2onehot():

@@ -21,7 +21,8 @@ def visualize_labelled_examples(example_dict,imgshape=(28,28), save=False, savep
                 plt.title(key)
     if (save and savepath != None):
         plt.savefig(savepath)
-    plt.show()
+    else:
+        plt.show()
 
 def img_path_name(dataset_name, num_samples, traintype, dataset_type, imagenum=0, extra_string=None):
     folder_name = 'imgs/'
@@ -59,3 +60,18 @@ def load_checkpoint(sess, path, checkpoint=1):
         print("Model restored from %s" % fname)
     except:
         print("Failed to load model from %s" % fname)
+
+def add_to_dict(destination_dict, source_dict):
+    for k in source_dict.keys():
+        destination_dict[k] = source_dict[k]
+
+def get_results_dir(dataset_name, num_samples, traintype, extra_string=None):
+    path = 'results/' + dataset_name + '/'
+    folder_name = traintype+'_k%d' % (num_samples)
+    if extra_string is not None:
+        folder_name += '_' + extra_string
+
+    path = path + folder_name + '/'
+    if not os.path.exists(path):
+        os.makedirs(path)
+    return path
