@@ -223,7 +223,14 @@ def debug_has_nan(datum, tensor):
   return np.any(np.isnan(tensor))
 
 if __name__ == '__main__':
-    print('testing the networks module....')
+    
+    #Configure options for running the experiment
+    get_scatter_plot=False #Get scatter plot for the tst data
+    train_model = False #Train the model
+    train_vis = False 	#Visualize training data
+    val = True		#Visualize validation data
+    test = False	#Visualize test data
+    compare = False	#Compare vae and iwae
 
     import datasets_utils as d_util
 
@@ -276,14 +283,12 @@ if __name__ == '__main__':
             for k in param_dict.keys():
                 print(k,' : ',param_dict[k].shape)
 
-        get_scatter_plot=False
         if(get_scatter_plot and latest_checkpoint>0 and latent_units[-1] == 2):
             visualize_2D_posterior(sess,input_placeholder=x,network=iwae,dataset=dataset,chkpointpath=path,checkpoint=latest_checkpoint,
                                    batch_size=batch_size,dataset_type='test',save=True,savedir=resultsdir,num_samples=num_samples,importance_weighted=True)
 
         #active_units = get_active_units_for_last_stoch_layer(sess,input_placeholder=x,network=iwae,dataset_type='test',dataset=dataset,checkpoint=latest_checkpoint,chkpointpath=path,batch_size=batch_size, save=True, savedir=resultsdir)
 
-        train_model = False
         if train_model:
             # training
             train(sess,x,iwae,dataset,path,batch_size,num_epochs=num_epochs,checkpoint=latest_checkpoint,model_type=traintype)
@@ -291,7 +296,6 @@ if __name__ == '__main__':
         #visualizations
         sample_type = 'generated'
 
-        train_vis = False
         if train_vis and latest_checkpoint > 0:
             get_lowerbound(sess, x, iwae, dataset, path, checkpoint=latest_checkpoint, batch_size=batch_size,
                            dataset_type='train', model_type=traintype, save=True, savedir=resultsdir)
@@ -303,7 +307,7 @@ if __name__ == '__main__':
                               data_shape=dataset.orig_image_shape, save=True,
                               savepath=imgpath, checkpoint=latest_checkpoint, batch_size=batch_size, dataset_type='train')
 
-        val = True
+        
         if val and latest_checkpoint>0:
             get_lowerbound(sess,x,iwae,dataset,path,checkpoint=latest_checkpoint,batch_size=batch_size,dataset_type='val', model_type=traintype, save=True, savedir = resultsdir)
             #imgpath = img_path_name(dataset_name, num_samples, traintype, 'val', extra_string='latents')
@@ -313,7 +317,7 @@ if __name__ == '__main__':
             visualize_samples(sess, x, iwae, dataset, path, sample_type=sample_type, data_shape=dataset.orig_image_shape, save=True,
                               savepath=imgpath, checkpoint=latest_checkpoint, batch_size=batch_size, dataset_type='val',num_examples=10)
 
-        test = False
+        
         if test and latest_checkpoint>0:
             get_lowerbound(sess, x, iwae, dataset, path, checkpoint=latest_checkpoint, batch_size=batch_size, dataset_type='test',model_type=traintype, save=True,savedir=resultsdir)
             imgpath = img_path_name(dataset_name, num_samples, traintype, 'test', imagenum=latest_checkpoint,extra_string=sample_type)
@@ -321,7 +325,7 @@ if __name__ == '__main__':
                               savepath=imgpath, checkpoint=latest_checkpoint, batch_size=batch_size, dataset_type='test')
 
         #examples = dataset.get_n_examplesforeachlabel(batch_size, 'val')
-        compare = False
+        
         if compare and latest_checkpoint>0:
             imgpath = img_path_name(dataset_name, num_samples, 'orig_image', 'test', imagenum=latest_checkpoint)
             examples = dataset.visualize_nlabelled_examples(batch_size,'val',save=True,savepath=imgpath,num_examples_to_show=10)
