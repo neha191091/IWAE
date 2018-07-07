@@ -8,13 +8,10 @@ IWAE has been introduced and explained in the paper [Importance Weighted Autoenc
 The experiments and results from this work are summarized in this [poster](https://github.com/neha191091/IWAE/blob/master/iwae/IWAE_Poster.pdf)
 
 ## Prerequisites
-- Dataset: Load the required datasets by running **datasets_download.py**
-- tensorflow
-- tensorflow.python.debug
-- numpy
-- progressbar
-- sys
-- os .. etc.
+### Dataset: 
+Load the required datasets by running **datasets_download.py**
+### Python packages: 
+tensorflow, tensorflow.python.debug, numpy, progressbar, sys, os .. etc.
 
 ## Running the experiments
 This code allows you to train, evaluate and compare VAE and IWAE architectures on the mnist dataset. Additionally you can also plot samples from the posterior from the model. All this can be done by changing the parameters of the main code in **experiments.py** and running it. 
