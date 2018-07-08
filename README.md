@@ -5,7 +5,7 @@ However, VAEs make assumption that the posterior is approximately factorial whic
 
 IWAE has been introduced and explained in the paper [Importance Weighted Autoencoders](https://arxiv.org/abs/1509.00519)
 
-The experiments and results from this work are summarized in this [poster](https://github.com/neha191091/IWAE/blob/master/iwae/IWAE_Poster.pdf)
+The experiments and results from this work are summarized in this poster (PDF version [here](https://github.com/neha191091/IWAE/blob/master/iwae/IWAE_Poster.pdf))
 
 ![alt text](https://github.com/neha191091/IWAE/blob/master/iwae/IWAE_Poster.jpg)
 
