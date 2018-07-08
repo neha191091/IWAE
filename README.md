@@ -7,7 +7,9 @@ IWAE has been introduced and explained in the paper [Importance Weighted Autoenc
 
 The experiments and results from this work are summarized in this [poster](https://github.com/neha191091/IWAE/blob/master/iwae/IWAE_Poster.pdf)
 
-## Prerequisites
+![alt text](https://github.com/neha191091/IWAE/blob/master/iwae/IWAE_Poster.jpg)
+
+## Prerequisites for running the code
 ### Dataset: 
 Load the required datasets by running **datasets_download.py**
 ### Python packages: 
