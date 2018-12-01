@@ -9,6 +9,8 @@ The experiments and results from this work are summarized in this poster (PDF ve
 
 ![alt text](https://github.com/neha191091/IWAE/blob/master/iwae/IWAE_Poster.jpg)
 
+**Note** - In the "Conclusion and Insights" section for the poster, the third point of interest is incorrect and was the result of a misinterpretation of the scatter plots in Fig. 3. Note that the scatter plots in Fig. 3 show the distribution of the aggregate posterior E<sub>x</sub>p(z|x)p(x) and not the posterior conditioned on a particular input. Since the aggregate posterior is pushed closer to the prior by design, Fig. 3 doesnot emphasize on the multimodality of the posterior distributions conditioned on a particular input. A corrected and more clearer plot is coming up soon! 
+
 ## Prerequisites for running the code
 ### Dataset: 
 Load the required datasets by running **datasets_download.py**
